@@ -1,27 +1,27 @@
 # Lubyc Service Booking Module Product Requirements Document (PRD)
 
-### Goals and Background Context
+## Goals and Background Context
 
-#### Goals
+### Goals
 
 *   **Revenue Expansion:** Generate revenue for Lubyc through commissions on paid bookings and the introduction of premium provider tiers.
 *   **Create a Stickier Ecosystem:** Increase user retention by providing a single platform that handles learning, events, and personal appointments.
 *   **Enable Cross-Module Synergies:** Allow service providers to promote their services in the Social feed, upsell during Events, and communicate with clients via Messaging.
 *   **Empower the Local Economy:** Enable micro-entrepreneurs (such as beauticians, tutors, and medics) to monetize their skills instantly within their communities.
 
-#### Background Context
+### Background Context
 
 Lubyc’s vision is to offer a single digital workspace for all business and community operations. A critical missing piece in this vision is real-time service scheduling. This project will introduce the capability for any Lubyc user to publish their availability, define their services, and accept bookings with integrated payments. This closes a significant gap in the platform, moving Lubyc closer to its goal of being a truly all-in-one solution.
 
-#### Change Log
+### Change Log
 
 | Date | Version | Description | Author |
 | :--- | :--- | :--- | :--- |
 | 2025-09-27 | 1.0 | Initial PRD Draft | John (PM) |
 
-### Requirements
+## Requirements
 
-#### Functional
+### Functional
 
 *   **FR1:** Customers must be able to search for service providers based on the type of service and their geographical location.
 *   **FR2:** Customers must be able to view a provider's full service catalogue, including details like price, duration, and descriptions.
@@ -39,7 +39,7 @@ Lubyc’s vision is to offer a single digital workspace for all business and com
 *   **FR14:** Employees must be able to set their personal availability (e.g., for vacations or shifts) to prevent being booked when they are off.
 *   **FR15:** Employees must be able to view their upcoming assigned appointments on a personal dashboard.
 
-#### Non-Functional
+### Non-Functional
 
 *   **NFR1:** The system must be scalable to handle a high volume of providers and bookings.
 *   **NFR2:** The API response time for public-facing read operations (e.g., fetching a service catalogue) should be under 200ms.
@@ -47,11 +47,11 @@ Lubyc’s vision is to offer a single digital workspace for all business and com
 *   **NFR4:** The database schema must be designed with proper indexing to ensure fast query performance for searches and availability checks.
 *   **NFR5:** The system must be designed with an "auth-ready" architecture, allowing for JWT-based security to be enabled easily in a future phase.
 
-### User Interface Design Goals
+## User Interface Design Goals
 
 *Not applicable for this project, as it is a backend service/API.*
 
-### Technical Assumptions
+## Technical Assumptions
 
 *   **Repository Structure:** Monorepo (assumed for ease of potential future integration with other Lubyc services).
 *   **Service Architecture:** The module will be built as a self-contained, containerized (Docker) microservice.
@@ -60,13 +60,13 @@ Lubyc’s vision is to offer a single digital workspace for all business and com
 *   **Caching:** Redis will be used for caching frequently accessed data like service pages and templates.
 *   **API Style:** A RESTful API will be exposed, with its contract defined by an OpenAPI 3.0 (Swagger) specification.
 
-### Epic List
+## Epic List
 
 *   **Epic 1: Provider Onboarding & Service Definition:** Establish the foundational capabilities for a service provider to create a profile, define their business hours and capacity, and build their service catalogue.
 *   **Epic 2: Core Booking Engine & Operations:** Implement the end-to-end booking lifecycle for customers and provide the necessary operational tools for providers and their staff to manage those bookings.
 *   **Epic 3: Advanced Features & Launch Readiness:** Introduce value-add features like cancellation policies, promotional campaigns, and the initial version of the AI re-booking reminder, followed by system hardening for go-live.
 
-### Epic 1: Provider Onboarding & Service Definition
+## Epic 1: Provider Onboarding & Service Definition
 
 **Epic Goal:** To enable a new service provider to successfully sign up, create a public-facing profile, define their business hours and capacity, and list their services in a searchable catalogue.
 
@@ -95,7 +95,7 @@ Lubyc’s vision is to offer a single digital workspace for all business and com
         2.  The endpoint returns a list of service providers that match the criteria.
         3.  The search results include basic provider and service catalogue information.
 
-### Epic 2: Core Booking Engine & Operations
+## Epic 2: Core Booking Engine & Operations
 
 **Epic Goal:** To allow customers to complete a booking from start to finish and to provide providers and staff with the tools to manage incoming appointments and their schedules.
 
@@ -120,7 +120,7 @@ Lubyc’s vision is to offer a single digital workspace for all business and com
         2.  When a booking for an assigned service is confirmed, a notification is sent to the assigned employee(s).
         3.  An endpoint exists for an employee to view all confirmed bookings assigned to them.
 
-### Epic 3: Advanced Features & Launch Readiness
+## Epic 3: Advanced Features & Launch Readiness
 
 **Epic Goal:** To layer on key business logic features such as cancellations and promotions, implement the first version of the AI reminder, and harden the system for its initial launch.
 

@@ -1,14 +1,14 @@
 # Lubyc Service Core Architecture Document
 
-### 1. High-Level Architecture (Revised with Caching)
+## 1. High-Level Architecture (Revised with Caching)
 
 This section defines the overall structure of the system, its boundaries, and how it interacts with the existing Lubyc ecosystem.
 
-#### Technical Summary
+### Technical Summary
 
 We will architect the **Service Core Module** as a self-contained, Dockerized **Node.js (TypeScript)** application. It will expose a comprehensive **RESTful API** to be consumed by the Lubyc frontend or other clients. The service will be stateless to support horizontal scaling. A **Redis** in-memory cache will be implemented to optimize read performance for frequently accessed data like service pages and templates. All data persistence will be managed via the **Prisma ORM** to a dedicated **PostgreSQL** database. For integration, the module will communicate with existing Lubyc services (Auth, HRM, Calendar) via their respective APIs, treating them as external dependencies.
 
-#### System Context Diagram
+### System Context Diagram
 
 ```mermaid
 graph TD
@@ -53,7 +53,7 @@ graph TD
     style G fill:#FEF9E7,stroke:#333,stroke-width:2px
 ```
 
-#### Caching Strategy
+### Caching Strategy
 
 *   **What We Will Cache:**
     *   Public Service Pages
@@ -63,7 +63,7 @@ graph TD
     1.  **Time-To-Live (TTL):** Data expires after a set period (e.g., 15-60 minutes).
     2.  **Event-Driven Invalidation:** Explicitly delete cache keys when underlying data is updated.
 
-### 2. REST API Specification (Revised for Auth-Disabled Development)
+## 2. REST API Specification (Revised for Auth-Disabled Development)
 
 ```yaml
 openapi: 3.0.1
@@ -245,9 +245,9 @@ paths:
               schema: { $ref: '#/components/schemas/ServiceCatalogueItem' }
 ```
 
-### 3. Database Schema and Indexing Strategy
+## 3. Database Schema and Indexing Strategy
 
-#### Prisma Schema (`schema.prisma`)
+### Prisma Schema (`schema.prisma`)
 
 ```prisma
 generator client {
@@ -414,14 +414,14 @@ model ServiceCatalogueEmployee {
 }
 ```
 
-#### Indexing Strategy Summary
+### Indexing Strategy Summary
 
 *   **Foreign Keys:** All foreign key fields are automatically indexed by Prisma.
 *   **Geospatial Search:** An index on `[lat, lng]` in `service_providers` for efficient location-based queries.
 *   **Text Search:** An index on `title` in `service_catalogue` for fast service searches.
 *   **Common Lookups:** Indexes on frequently queried fields like `userId` and `serviceProviderId`.
 
-### 4. Source Tree (Project Folder Structure)
+## 4. Source Tree (Project Folder Structure)
 
 ```plaintext
 lubyc-service-core/
@@ -482,13 +482,13 @@ lubyc-service-core/
 └── README.md
 ```
 
-### 5. Coding Standards and Critical Rules
+## 5. Coding Standards and Critical Rules
 
-#### A. Core Standards
+### A. Core Standards
 1.  **Language & Runtime:** TypeScript 5.x, Node.js 20.x (LTS).
 2.  **Code Style & Formatting:** ESLint and Prettier with a shared project configuration.
 
-#### B. Naming Conventions
+### B. Naming Conventions
 | Element Type | Convention | Example |
 | :--- | :--- | :--- |
 | Module Folder | `kebab-case` | `service-catalogue` |
@@ -501,18 +501,18 @@ lubyc-service-core/
 | Function/Method Names | `camelCase` | `getProviderById` |
 | Variable Names | `camelCase` | `activeProvider` |
 
-#### C. Critical Implementation Rules
+### C. Critical Implementation Rules
 1.  **Strict Separation of Concerns:** Adhere to the Controller -> Service -> Repository pattern.
 2.  **Dependency Injection (DI) is Mandatory:** Never manually instantiate services or repositories.
 3.  **DTOs for All Input:** All `POST`/`PUT` endpoints must use DTOs with validation.
 4.  **Centralized Configuration:** Access environment variables only through a dedicated `ConfigService`.
 5.  **Structured Error Handling:** Use a global exception filter and custom exceptions.
 
-#### D. Security Mandates
+### D. Security Mandates
 1.  **No Raw SQL:** Use Prisma Client methods exclusively.
 2.  **Validate All Input:** All external data must be validated via DTOs.
 3.  **Do Not Log Sensitive Information:** Avoid logging PII, passwords, or API keys.
 
-#### E. Testing Requirements
+### E. Testing Requirements
 1.  **Unit Tests are Required:** Every Service and Repository must have a corresponding `*.spec.ts` file.
 2.  **Test Pattern:** Follow the Arrange-Act-Assert (AAA) pattern.
