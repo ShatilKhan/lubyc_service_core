@@ -54,14 +54,22 @@ export class ServiceCatalogueRepository {
   }
 
   async findPublicServices(filters?: {
-    serviceTypeId?: number;
+    serviceTypeId?: bigint;
     keyword?: string;
     lat?: string;
     lng?: string;
-  }): Promise<ServiceCatalogue[]> {
+  }): Promise<any[]> {
     const where: Prisma.ServiceCatalogueWhereInput = {
       isDeleted: 0,
     };
+
+    const providerWhere: Prisma.ServiceProviderWhereInput = {
+      isDeleted: 0,
+    };
+
+    if (filters?.serviceTypeId) {
+      providerWhere.serviceTypeId = filters.serviceTypeId;
+    }
 
     if (filters?.keyword) {
       where.OR = [
@@ -70,14 +78,68 @@ export class ServiceCatalogueRepository {
       ];
     }
 
-    return this.prisma.serviceCatalogue.findMany({
+    where.provider = providerWhere;
+
+    const services = await this.prisma.serviceCatalogue.findMany({
       where,
       include: {
-        provider: true,
+        provider: {
+          include: {
+            serviceType: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    if (filters?.lat && filters?.lng) {
+      const servicesWithDistance = services.map((service: any) => {
+        const distance = this.calculateDistance(
+          parseFloat(filters.lat!),
+          parseFloat(filters.lng!),
+          parseFloat(service.provider.lat || '0'),
+          parseFloat(service.provider.lng || '0'),
+        );
+
+        return {
+          ...service,
+          distance,
+        };
+      });
+
+      return servicesWithDistance
+        .filter((service: any) => {
+          const maxRadius = service.provider.geoRadius || 10;
+          return service.distance <= maxRadius;
+        })
+        .sort((a: any, b: any) => a.distance - b.distance);
+    }
+
+    return services;
+  }
+
+  private calculateDistance(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number,
+  ): number {
+    const R = 6371;
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLng = this.toRadians(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(lat1)) *
+        Math.cos(this.toRadians(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { ServiceCatalogueRepository } from './service-catalogue.repository';
 import { CreateServiceCatalogueDto } from './dto/create-service-catalogue.dto';
 import { UpdateServiceCatalogueDto } from './dto/update-service-catalogue.dto';
+import { SearchServicesDto } from './dto/search-services.dto';
 import { ProvidersRepository } from '../providers/providers.repository';
 import { Prisma } from '@prisma/client';
 
@@ -127,14 +128,9 @@ export class ServiceCatalogueService {
     await this.serviceCatalogueRepository.delete(catalogueIdBigInt);
   }
 
-  async searchPublicServices(filters?: {
-    serviceTypeId?: string;
-    keyword?: string;
-    lat?: string;
-    lng?: string;
-  }) {
+  async searchPublicServices(filters?: SearchServicesDto) {
     const searchFilters = filters ? {
-      serviceTypeId: filters.serviceTypeId ? parseInt(filters.serviceTypeId) : undefined,
+      serviceTypeId: filters.serviceTypeId ? BigInt(filters.serviceTypeId) : undefined,
       keyword: filters.keyword,
       lat: filters.lat,
       lng: filters.lng,
@@ -142,15 +138,35 @@ export class ServiceCatalogueService {
 
     const services = await this.serviceCatalogueRepository.findPublicServices(searchFilters);
 
-    return services.map((service: any) => ({
-      ...this.transformServiceForResponse(service),
-      provider: service.provider ? {
-        id: service.provider.id.toString(),
-        businessName: service.provider.businessName,
-        latitude: service.provider.latitude?.toString(),
-        longitude: service.provider.longitude?.toString(),
-      } : undefined,
-    }));
+    return services.map((service: any) => {
+      const response = this.transformServiceForResponse(service);
+
+      if (service.provider) {
+        const providerInfo: any = {
+          id: service.provider.id.toString(),
+          serviceTypeId: service.provider.serviceTypeId.toString(),
+          lat: service.provider.lat,
+          lng: service.provider.lng,
+          geoRadius: service.provider.geoRadius,
+          serviceType: service.provider.serviceType ? {
+            id: service.provider.serviceType.id.toString(),
+            name: service.provider.serviceType.name,
+            description: service.provider.serviceType.description,
+          } : undefined,
+        };
+
+        if (service.distance !== undefined) {
+          providerInfo.distance = Math.round(service.distance * 100) / 100;
+        }
+
+        return {
+          ...response,
+          provider: providerInfo,
+        };
+      }
+
+      return response;
+    });
   }
 
   private transformServiceForResponse(service: any) {

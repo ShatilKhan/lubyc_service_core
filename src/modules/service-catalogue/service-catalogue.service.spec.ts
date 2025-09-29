@@ -271,10 +271,27 @@ describe('ServiceCatalogueService', () => {
   });
 
   describe('searchPublicServices', () => {
-    it('should return filtered services', async () => {
+    const mockProviderWithLocation = {
+      id: BigInt(1),
+      userId: BigInt(1),
+      serviceTypeId: BigInt(1),
+      lat: '40.7128',
+      lng: '-74.0060',
+      geoRadius: 10,
+      isDeleted: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      serviceType: {
+        id: BigInt(1),
+        name: 'Haircut',
+        description: 'Professional haircut service',
+      },
+    };
+
+    it('should return filtered services with keyword', async () => {
       const mockServicesWithProvider = [{
         ...mockServiceCatalogue,
-        provider: mockProvider,
+        provider: mockProviderWithLocation,
       }];
 
       serviceCatalogueRepository.findPublicServices.mockResolvedValue(mockServicesWithProvider as any);
@@ -289,8 +306,80 @@ describe('ServiceCatalogueService', () => {
         lat: undefined,
         lng: undefined,
       });
-      expect(result[0].provider).toBeDefined();
-      expect(result[0].provider.businessName).toBe('Test Business');
+      expect((result[0] as any).provider).toBeDefined();
+      expect((result[0] as any).provider.serviceType.name).toBe('Haircut');
+    });
+
+    it('should filter services by serviceTypeId', async () => {
+      const mockServicesWithProvider = [{
+        ...mockServiceCatalogue,
+        provider: mockProviderWithLocation,
+      }];
+
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue(mockServicesWithProvider as any);
+
+      const result = await service.searchPublicServices({
+        serviceTypeId: '1',
+      });
+
+      expect(serviceCatalogueRepository.findPublicServices).toHaveBeenCalledWith({
+        serviceTypeId: BigInt(1),
+        keyword: undefined,
+        lat: undefined,
+        lng: undefined,
+      });
+      expect(result).toHaveLength(1);
+      expect((result[0] as any).provider.serviceTypeId).toBe('1');
+    });
+
+    it('should filter services by location', async () => {
+      const mockServicesWithProvider = [{
+        ...mockServiceCatalogue,
+        provider: mockProviderWithLocation,
+        distance: 5.2,
+      }];
+
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue(mockServicesWithProvider as any);
+
+      const result = await service.searchPublicServices({
+        lat: '40.7328',
+        lng: '-74.0160',
+      });
+
+      expect(serviceCatalogueRepository.findPublicServices).toHaveBeenCalledWith({
+        serviceTypeId: undefined,
+        keyword: undefined,
+        lat: '40.7328',
+        lng: '-74.0160',
+      });
+      expect((result[0] as any).provider.distance).toBe(5.2);
+    });
+
+    it('should combine serviceTypeId and location filters', async () => {
+      const mockServicesWithProvider = [{
+        ...mockServiceCatalogue,
+        provider: mockProviderWithLocation,
+        distance: 3.5,
+      }];
+
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue(mockServicesWithProvider as any);
+
+      const result = await service.searchPublicServices({
+        serviceTypeId: '1',
+        lat: '40.7328',
+        lng: '-74.0160',
+        keyword: 'haircut',
+      });
+
+      expect(serviceCatalogueRepository.findPublicServices).toHaveBeenCalledWith({
+        serviceTypeId: BigInt(1),
+        keyword: 'haircut',
+        lat: '40.7328',
+        lng: '-74.0160',
+      });
+      expect(result).toHaveLength(1);
+      expect((result[0] as any).provider.serviceTypeId).toBe('1');
+      expect((result[0] as any).provider.distance).toBe(3.5);
     });
 
     it('should return all services when no filters provided', async () => {
@@ -300,6 +389,63 @@ describe('ServiceCatalogueService', () => {
 
       expect(serviceCatalogueRepository.findPublicServices).toHaveBeenCalledWith(undefined);
       expect(result).toHaveLength(1);
+    });
+
+    it('should include provider details in response', async () => {
+      const mockServicesWithProvider = [{
+        ...mockServiceCatalogue,
+        provider: mockProviderWithLocation,
+      }];
+
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue(mockServicesWithProvider as any);
+
+      const result = await service.searchPublicServices({});
+
+      expect((result[0] as any).provider).toBeDefined();
+      expect((result[0] as any).provider.lat).toBe('40.7128');
+      expect((result[0] as any).provider.lng).toBe('-74.0060');
+      expect((result[0] as any).provider.geoRadius).toBe(10);
+      expect((result[0] as any).provider.serviceType).toBeDefined();
+    });
+
+    it('should handle services without provider information', async () => {
+      const serviceWithoutProvider = {
+        ...mockServiceCatalogue,
+        provider: undefined,
+      };
+
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue([serviceWithoutProvider] as any);
+
+      const result = await service.searchPublicServices({});
+
+      expect((result[0] as any).provider).toBeUndefined();
+    });
+
+    it('should handle empty result set', async () => {
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue([]);
+
+      const result = await service.searchPublicServices({
+        keyword: 'nonexistent',
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('should round distance to 2 decimal places', async () => {
+      const mockServicesWithProvider = [{
+        ...mockServiceCatalogue,
+        provider: mockProviderWithLocation,
+        distance: 5.238765,
+      }];
+
+      serviceCatalogueRepository.findPublicServices.mockResolvedValue(mockServicesWithProvider as any);
+
+      const result = await service.searchPublicServices({
+        lat: '40.7328',
+        lng: '-74.0160',
+      });
+
+      expect((result[0] as any).provider.distance).toBe(5.24);
     });
   });
 

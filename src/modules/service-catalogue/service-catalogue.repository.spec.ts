@@ -218,9 +218,14 @@ describe('ServiceCatalogueRepository', () => {
       expect(prismaService.serviceCatalogue.findMany).toHaveBeenCalledWith({
         where: {
           isDeleted: 0,
+          provider: { isDeleted: 0 },
         },
         include: {
-          provider: true,
+          provider: {
+            include: {
+              serviceType: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -247,9 +252,14 @@ describe('ServiceCatalogueRepository', () => {
             { title: { contains: 'test', mode: 'insensitive' } },
             { description: { contains: 'test', mode: 'insensitive' } },
           ],
+          provider: { isDeleted: 0 },
         },
         include: {
-          provider: true,
+          provider: {
+            include: {
+              serviceType: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -258,13 +268,190 @@ describe('ServiceCatalogueRepository', () => {
       expect(result).toEqual(mockServices);
     });
 
+    it('should filter by serviceTypeId', async () => {
+      const mockServices = [
+        { ...mockServiceCatalogue, provider: mockProvider },
+      ];
+
+      (prismaService.serviceCatalogue.findMany as jest.Mock).mockResolvedValue(mockServices);
+
+      const result = await repository.findPublicServices({
+        serviceTypeId: BigInt(1),
+      });
+
+      expect(prismaService.serviceCatalogue.findMany).toHaveBeenCalledWith({
+        where: {
+          isDeleted: 0,
+          provider: {
+            isDeleted: 0,
+            serviceTypeId: BigInt(1),
+          },
+        },
+        include: {
+          provider: {
+            include: {
+              serviceType: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      expect(result).toEqual(mockServices);
+    });
+
+    it('should filter by location and calculate distance', async () => {
+      const mockProviderWithLocation = {
+        ...mockProvider,
+        lat: '40.7128',
+        lng: '-74.0060',
+        geoRadius: 10,
+      };
+
+      const mockServices = [
+        { ...mockServiceCatalogue, provider: mockProviderWithLocation },
+      ];
+
+      (prismaService.serviceCatalogue.findMany as jest.Mock).mockResolvedValue(mockServices);
+
+      const result = await repository.findPublicServices({
+        lat: '40.7328',
+        lng: '-74.0160',
+      });
+
+      expect(prismaService.serviceCatalogue.findMany).toHaveBeenCalled();
+      expect(result[0].distance).toBeDefined();
+      expect(result[0].distance).toBeGreaterThan(0);
+      expect(result[0].distance).toBeLessThan(10);
+    });
+
+    it('should filter out services outside geoRadius', async () => {
+      const nearProvider = {
+        ...mockProvider,
+        id: BigInt(1),
+        lat: '40.7128',
+        lng: '-74.0060',
+        geoRadius: 10,
+      };
+
+      const farProvider = {
+        ...mockProvider,
+        id: BigInt(2),
+        lat: '41.8781',
+        lng: '-87.6298',
+        geoRadius: 10,
+      };
+
+      const mockServices = [
+        { ...mockServiceCatalogue, id: BigInt(1), provider: nearProvider },
+        { ...mockServiceCatalogue, id: BigInt(2), provider: farProvider },
+      ];
+
+      (prismaService.serviceCatalogue.findMany as jest.Mock).mockResolvedValue(mockServices);
+
+      const result = await repository.findPublicServices({
+        lat: '40.7128',
+        lng: '-74.0060',
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toEqual(BigInt(1));
+    });
+
+    it('should sort services by distance when location is provided', async () => {
+      const provider1 = {
+        ...mockProvider,
+        id: BigInt(1),
+        lat: '40.7128',
+        lng: '-74.0060',
+        geoRadius: 50,
+      };
+
+      const provider2 = {
+        ...mockProvider,
+        id: BigInt(2),
+        lat: '40.7528',
+        lng: '-74.0260',
+        geoRadius: 50,
+      };
+
+      const provider3 = {
+        ...mockProvider,
+        id: BigInt(3),
+        lat: '40.7328',
+        lng: '-74.0160',
+        geoRadius: 50,
+      };
+
+      const mockServices = [
+        { ...mockServiceCatalogue, id: BigInt(1), provider: provider1 },
+        { ...mockServiceCatalogue, id: BigInt(2), provider: provider2 },
+        { ...mockServiceCatalogue, id: BigInt(3), provider: provider3 },
+      ];
+
+      (prismaService.serviceCatalogue.findMany as jest.Mock).mockResolvedValue(mockServices);
+
+      const result = await repository.findPublicServices({
+        lat: '40.7128',
+        lng: '-74.0060',
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result[0].distance).toBeLessThan(result[1].distance);
+      expect(result[1].distance).toBeLessThan(result[2].distance);
+    });
+
+    it('should combine serviceTypeId and location filters', async () => {
+      const mockProviderWithLocation = {
+        ...mockProvider,
+        serviceTypeId: BigInt(1),
+        lat: '40.7128',
+        lng: '-74.0060',
+        geoRadius: 10,
+      };
+
+      const mockServices = [
+        { ...mockServiceCatalogue, provider: mockProviderWithLocation },
+      ];
+
+      (prismaService.serviceCatalogue.findMany as jest.Mock).mockResolvedValue(mockServices);
+
+      const result = await repository.findPublicServices({
+        serviceTypeId: BigInt(1),
+        lat: '40.7328',
+        lng: '-74.0160',
+      });
+
+      expect(prismaService.serviceCatalogue.findMany).toHaveBeenCalledWith({
+        where: {
+          isDeleted: 0,
+          provider: {
+            isDeleted: 0,
+            serviceTypeId: BigInt(1),
+          },
+        },
+        include: {
+          provider: {
+            include: {
+              serviceType: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      expect(result[0].distance).toBeDefined();
+    });
+
     it('should handle multiple filters', async () => {
       const mockServices = [];
 
       (prismaService.serviceCatalogue.findMany as jest.Mock).mockResolvedValue(mockServices);
 
       const result = await repository.findPublicServices({
-        serviceTypeId: 1,
+        serviceTypeId: BigInt(1),
         keyword: 'haircut',
         lat: '40.7128',
         lng: '-74.0060',
@@ -277,9 +464,17 @@ describe('ServiceCatalogueRepository', () => {
             { title: { contains: 'haircut', mode: 'insensitive' } },
             { description: { contains: 'haircut', mode: 'insensitive' } },
           ],
+          provider: {
+            isDeleted: 0,
+            serviceTypeId: BigInt(1),
+          },
         },
         include: {
-          provider: true,
+          provider: {
+            include: {
+              serviceType: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
