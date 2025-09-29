@@ -21,10 +21,12 @@ export class ProvidersService {
       throw new BadRequestException('Service type not found');
     }
 
-    // Prepare data for creation
-    const providerData = {
+    // Prepare data for creation using Prisma's relation connect
+    const providerData: any = {
       userId: BigInt(userId),
-      serviceTypeId: BigInt(createProviderDto.serviceTypeId),
+      serviceType: {
+        connect: { id: BigInt(createProviderDto.serviceTypeId) },
+      },
       lat: createProviderDto.lat,
       lng: createProviderDto.lng,
       advancePayType: (createProviderDto.advancePayType || 'percent') as AdvancePayType,
@@ -35,9 +37,6 @@ export class ProvidersService {
       status: 0,
       isDeleted: 0,
       advancePay: 0,
-      serviceType: {
-        connect: { id: BigInt(createProviderDto.serviceTypeId) },
-      },
     };
 
     return this.providersRepository.create(providerData);
@@ -78,7 +77,6 @@ export class ProvidersService {
     const updateData: any = {};
 
     if (updateProviderDto.serviceTypeId !== undefined) {
-      updateData.serviceTypeId = BigInt(updateProviderDto.serviceTypeId);
       updateData.serviceType = {
         connect: { id: BigInt(updateProviderDto.serviceTypeId) },
       };

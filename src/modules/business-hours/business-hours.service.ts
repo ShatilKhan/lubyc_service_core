@@ -32,7 +32,6 @@ export class BusinessHoursService {
     }
 
     const businessHoursData = {
-      providerId: providerIdBigInt,
       dayOfWeek: createDto.dayOfWeek,
       openTime: createDto.openTime,
       closeTime: createDto.closeTime,
